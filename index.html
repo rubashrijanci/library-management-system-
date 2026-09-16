@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Management System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <!-- Header -->
+        <header>
+            <div>
+                <h1>📚 Library Management</h1>
+                <p>Manage your library books easily</p>
+            </div>
+
+            <button class="add-btn" onclick="showForm()">
+                + Add Book
+            </button>
+        </header>
+
+        <!-- Dashboard Cards -->
+        <section class="dashboard-cards">
+
+            <div class="card">
+                <h3>Total Books</h3>
+                <h2 id="totalBooks">0</h2>
+            </div>
+
+            <div class="card">
+                <h3>Available</h3>
+                <h2 id="availableBooks">0</h2>
+            </div>
+
+            <div class="card">
+                <h3>Issued</h3>
+                <h2 id="issuedBooks">0</h2>
+            </div>
+
+        </section>
+
+        <!-- Search -->
+        <section class="book-section">
+
+            <div class="section-header">
+                <div>
+                    <h2>Book Collection</h2>
+                    <p>View and manage all books</p>
+                </div>
+
+                <input
+                    type="text"
+                    id="search"
+                    placeholder="🔍 Search books..."
+                    onkeyup="displayBooks()"
+                >
+            </div>
+
+            <!-- Book Table -->
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Book</th>
+                            <th>Author</th>
+                            <th>Category</th>
+                            <th>Year</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="bookTable">
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+        <!-- Add / Update Form -->
+        <section class="form-section" id="bookForm">
+
+            <h2 id="formTitle">Add New Book</h2>
+
+            <form onsubmit="saveBook(event)">
+
+                <div class="form-grid">
+
+                    <input
+                        type="text"
+                        id="title"
+                        placeholder="Book Title"
+                        required
+                    >
+
+                    <input
+                        type="text"
+                        id="author"
+                        placeholder="Author"
+                        required
+                    >
+
+                    <input
+                        type="text"
+                        id="isbn"
+                        placeholder="ISBN"
+                        required
+                    >
+
+                    <input
+                        type="text"
+                        id="category"
+                        placeholder="Category"
+                        required
+                    >
+
+                    <input
+                        type="number"
+                        id="year"
+                        placeholder="Published Year"
+                        required
+                    >
+
+                </div>
+
+                <label class="available-check">
+                    <input type="checkbox" id="available" checked>
+                    Book is available
+                </label>
+
+                <button type="submit" class="save-btn">
+                    Save Book
+                </button>
+
+                <button
+                    type="button"
+                    class="cancel-btn"
+                    onclick="hideForm()"
+                >
+                    Cancel
+                </button>
+
+            </form>
+
+        </section>
+
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
