@@ -1,0 +1,523 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import sqlite3
+
+app = Flask(__name__)
+CORS(app)
+
+DATABASE = "library.db"
+
+
+# ==========================================
+# DATABASE CONNECTION
+# ==========================================
+
+def get_db():
+
+    connection = sqlite3.connect(DATABASE)
+
+    connection.row_factory = sqlite3.Row
+
+    return connection
+
+
+# ==========================================
+# CREATE DATABASE TABLE
+# ==========================================
+
+def create_table():
+
+    connection = get_db()
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS books (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            title TEXT NOT NULL,
+
+            author TEXT NOT NULL,
+
+            isbn TEXT NOT NULL UNIQUE,
+
+            category TEXT NOT NULL,
+
+            published_year INTEGER NOT NULL,
+
+            available INTEGER DEFAULT 1
+
+        )
+    """)
+
+    connection.commit()
+
+    connection.close()
+
+
+# ==========================================
+# HOME
+# ==========================================
+
+@app.route("/")
+def home():
+
+    return jsonify({
+        "message": "Library Management API is running"
+    })
+
+
+# ==========================================
+# GET ALL BOOKS
+# READ
+# ==========================================
+
+@app.route("/api/books/", methods=["GET"])
+def get_books():
+
+    connection = get_db()
+
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT * FROM books ORDER BY id DESC"
+    )
+
+    books = cursor.fetchall()
+
+    connection.close()
+
+    result = []
+
+    for book in books:
+
+        result.append({
+
+            "id": book["id"],
+
+            "title": book["title"],
+
+            "author": book["author"],
+
+            "isbn": book["isbn"],
+
+            "category": book["category"],
+
+            "published_year":
+                book["published_year"],
+
+            "available":
+                bool(book["available"])
+
+        })
+
+    return jsonify(result)
+
+
+# ==========================================
+# GET ONE BOOK
+# READ ONE
+# ==========================================
+
+@app.route("/api/books/<int:book_id>/", methods=["GET"])
+def get_book(book_id):
+
+    connection = get_db()
+
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT * FROM books WHERE id = ?",
+        (book_id,)
+    )
+
+    book = cursor.fetchone()
+
+    connection.close()
+
+
+    if book is None:
+
+        return jsonify({
+            "error": "Book not found"
+        }), 404
+
+
+    return jsonify({
+
+        "id": book["id"],
+
+        "title": book["title"],
+
+        "author": book["author"],
+
+        "isbn": book["isbn"],
+
+        "category": book["category"],
+
+        "published_year":
+            book["published_year"],
+
+        "available":
+            bool(book["available"])
+
+    })
+
+
+# ==========================================
+# ADD BOOK
+# CREATE
+# ==========================================
+
+@app.route("/api/books/", methods=["POST"])
+def add_book():
+
+    data = request.get_json()
+
+
+    # Required field validation
+
+    required_fields = [
+        "title",
+        "author",
+        "isbn",
+        "category",
+        "published_year"
+    ]
+
+
+    for field in required_fields:
+
+        if field not in data:
+
+            return jsonify({
+                "error":
+                    f"{field} is required"
+            }), 400
+
+
+    title = data["title"].strip()
+
+    author = data["author"].strip()
+
+    isbn = data["isbn"].strip()
+
+    category = data["category"].strip()
+
+    published_year = data["published_year"]
+
+    available = data.get(
+        "available",
+        True
+    )
+
+
+    # Empty field validation
+
+    if not title or not author or not isbn or not category:
+
+        return jsonify({
+            "error":
+                "All fields are required"
+        }), 400
+
+
+    # Year validation
+
+    try:
+
+        published_year = int(
+            published_year
+        )
+
+    except:
+
+        return jsonify({
+            "error":
+                "Published year must be a number"
+        }), 400
+
+
+    if published_year < 1000 or published_year > 2100:
+
+        return jsonify({
+            "error":
+                "Enter a valid published year"
+        }), 400
+
+
+    connection = get_db()
+
+    cursor = connection.cursor()
+
+
+    try:
+
+        cursor.execute("""
+            INSERT INTO books
+            (
+                title,
+                author,
+                isbn,
+                category,
+                published_year,
+                available
+            )
+
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+
+            title,
+            author,
+            isbn,
+            category,
+            published_year,
+            int(available)
+
+        ))
+
+
+        connection.commit()
+
+        book_id = cursor.lastrowid
+
+
+    except sqlite3.IntegrityError:
+
+        connection.close()
+
+        return jsonify({
+            "error":
+                "ISBN already exists"
+        }), 400
+
+
+    connection.close()
+
+
+    return jsonify({
+
+        "message":
+            "Book added successfully",
+
+        "id":
+            book_id
+
+    }), 201
+
+
+# ==========================================
+# UPDATE BOOK
+# UPDATE
+# ==========================================
+
+@app.route(
+    "/api/books/<int:book_id>/",
+    methods=["PUT"]
+)
+def update_book(book_id):
+
+    data = request.get_json()
+
+
+    title = data.get(
+        "title",
+        ""
+    ).strip()
+
+    author = data.get(
+        "author",
+        ""
+    ).strip()
+
+    isbn = data.get(
+        "isbn",
+        ""
+    ).strip()
+
+    category = data.get(
+        "category",
+        ""
+    ).strip()
+
+    published_year = data.get(
+        "published_year"
+    )
+
+    available = data.get(
+        "available",
+        True
+    )
+
+
+    # Validation
+
+    if not title or not author or not isbn or not category:
+
+        return jsonify({
+            "error":
+                "All fields are required"
+        }), 400
+
+
+    try:
+
+        published_year = int(
+            published_year
+        )
+
+    except:
+
+        return jsonify({
+            "error":
+                "Published year must be a number"
+        }), 400
+
+
+    if published_year < 1000 or published_year > 2100:
+
+        return jsonify({
+            "error":
+                "Enter a valid published year"
+        }), 400
+
+
+    connection = get_db()
+
+    cursor = connection.cursor()
+
+
+    # Check book
+
+    cursor.execute(
+        "SELECT * FROM books WHERE id = ?",
+        (book_id,)
+    )
+
+    book = cursor.fetchone()
+
+
+    if book is None:
+
+        connection.close()
+
+        return jsonify({
+            "error":
+                "Book not found"
+        }), 404
+
+
+    try:
+
+        cursor.execute("""
+            UPDATE books
+
+            SET
+                title = ?,
+                author = ?,
+                isbn = ?,
+                category = ?,
+                published_year = ?,
+                available = ?
+
+            WHERE id = ?
+        """, (
+
+            title,
+            author,
+            isbn,
+            category,
+            published_year,
+            int(available),
+            book_id
+
+        ))
+
+
+        connection.commit()
+
+
+    except sqlite3.IntegrityError:
+
+        connection.close()
+
+        return jsonify({
+            "error":
+                "ISBN already exists"
+        }), 400
+
+
+    connection.close()
+
+
+    return jsonify({
+        "message":
+            "Book updated successfully"
+    })
+
+
+# ==========================================
+# DELETE BOOK
+# DELETE
+# ==========================================
+
+@app.route(
+    "/api/books/<int:book_id>/",
+    methods=["DELETE"]
+)
+def delete_book(book_id):
+
+    connection = get_db()
+
+    cursor = connection.cursor()
+
+
+    cursor.execute(
+        "SELECT * FROM books WHERE id = ?",
+        (book_id,)
+    )
+
+    book = cursor.fetchone()
+
+
+    if book is None:
+
+        connection.close()
+
+        return jsonify({
+            "error":
+                "Book not found"
+        }), 404
+
+
+    cursor.execute(
+        "DELETE FROM books WHERE id = ?",
+        (book_id,)
+    )
+
+
+    connection.commit()
+
+    connection.close()
+
+
+    return jsonify({
+        "message":
+            "Book deleted successfully"
+    })
+
+
+# ==========================================
+# RUN SERVER
+# ==========================================
+
+if __name__ == "__main__":
+
+    create_table()
+
+    app.run(
+        host="127.0.0.1",
+        port=8000,
+        debug=True
+    )
